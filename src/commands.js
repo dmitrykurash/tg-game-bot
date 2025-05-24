@@ -1,4 +1,4 @@
-import { getGameState, setGameState, addHistory, getHistory, generateSituation, clearGameState } from './gameLogic.js';
+import { getGameState, setGameState, addHistory, getHistory, generateSituation, clearGameState, getStats } from './gameLogic.js';
 import logger from './logger.js';
 
 export function setupCommands(bot) {
