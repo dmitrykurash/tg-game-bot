@@ -1,6 +1,5 @@
 import { getGameState, setGameState, addHistory, getHistory, generateSituation, clearGameState } from './gameLogic.js';
 import logger from './logger.js';
-import { getStats } from './statsLogic.js';
 
 export function setupCommands(bot) {
   bot.onText(/\/start/, async (msg) => {
