@@ -1,5 +1,6 @@
 import { getGameState, setGameState, addHistory, getHistory, generateSituation, clearGameState } from './gameLogic.js';
 import logger from './logger.js';
+import { getStats } from './statsLogic.js';
 
 export function setupCommands(bot) {
   bot.onText(/\/start/, async (msg) => {
@@ -7,7 +8,8 @@ export function setupCommands(bot) {
     logger.info(`[${chatId}] /start by ${msg.from.username}`);
     const state = JSON.stringify({});
     await setGameState(chatId, state, 1, Date.now());
-    const situation = await generateSituation([]);
+    const stats = await getStats(chatId);
+    const situation = await generateSituation([], stats);
     await addHistory(chatId, situation);
     bot.sendMessage(chatId, `Вай, братва! Начинаем новую историю!\n\n${situation}`);
   });
@@ -34,7 +36,8 @@ export function setupCommands(bot) {
     await clearGameState(chatId);
     const state = JSON.stringify({});
     await setGameState(chatId, state, 1, Date.now());
-    const situation = await generateSituation([]);
+    const stats = await getStats(chatId);
+    const situation = await generateSituation([], stats);
     await addHistory(chatId, situation);
     bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${situation}`);
   });
@@ -43,7 +46,8 @@ export function setupCommands(bot) {
     const chatId = msg.chat.id;
     logger.info(`[${chatId}] /next by ${msg.from.username}`);
     const history = await getHistory(chatId, 10);
-    const situation = await generateSituation(history.reverse());
+    const stats = await getStats(chatId);
+    const situation = await generateSituation(history.reverse(), stats);
     await addHistory(chatId, situation);
     bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${situation}`);
   });
@@ -68,7 +72,8 @@ export function setupCommands(bot) {
     const chatId = msg.chat.id;
     logger.info(`[${chatId}] /callaslan by ${msg.from.username}`);
     const history = await getHistory(chatId, 10);
-    const situation = await generateSituation(history.reverse());
+    const stats = await getStats(chatId);
+    const situation = await generateSituation(history.reverse(), stats);
     await addHistory(chatId, situation);
     bot.sendMessage(chatId, `Вай, братва! Аслан тут как тут!\n\n${situation}`);
   });
@@ -85,11 +90,13 @@ export function setupCommands(bot) {
       bot.sendMessage(chatId, 'Союзники и враги скоро появятся, брат.');
     } else if (msg.text === 'Позвать Аслана') {
       const history = await getHistory(chatId, 10);
-      const situation = await generateSituation(history.reverse());
+      const stats = await getStats(chatId);
+      const situation = await generateSituation(history.reverse(), stats);
       await addHistory(chatId, situation);
       bot.sendMessage(chatId, `Вай, братва! Аслан тут как тут!\n\n${situation}`);
     } else if (msg.text === 'Баланс и репутация') {
-      bot.sendMessage(chatId, 'Баланс и репутация скоро появятся, брат.');
+      const stats = await getStats(chatId);
+      bot.sendMessage(chatId, `Касса: ${stats.cash}\nРепутация: ${stats.reputation}\nРеспект: ${stats.respect}\nВнимание ментов: ${stats.heat}`);
     } else if (msg.text === 'Справка') {
       bot.sendMessage(chatId, 'Я — Аслан "Схема", ведущий вашей криминальной истории. Пиши /start чтобы начать, /history — посмотреть события, /callaslan — позвать меня. Отвечай на ситуации реплаем!');
     } else if (msg.text === 'Перезапустить') {
@@ -97,13 +104,15 @@ export function setupCommands(bot) {
       await clearGameState(chatId);
       const state = JSON.stringify({});
       await setGameState(chatId, state, 1, Date.now());
-      const situation = await generateSituation([]);
+      const stats = await getStats(chatId);
+      const situation = await generateSituation([], stats);
       await addHistory(chatId, situation);
       bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${situation}`);
     } else if (msg.text === 'Следующая ситуация') {
       logger.info(`[${chatId}] Следующая ситуация через меню`);
       const history = await getHistory(chatId, 10);
-      const situation = await generateSituation(history.reverse());
+      const stats = await getStats(chatId);
+      const situation = await generateSituation(history.reverse(), stats);
       await addHistory(chatId, situation);
       bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${situation}`);
     }

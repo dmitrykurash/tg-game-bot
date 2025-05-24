@@ -87,12 +87,18 @@ export async function getReplies(chatId, situationId) {
   );
 }
 
-export async function generateSituation(history) {
+export async function generateSituation(history, stats) {
+  const statString = stats ? `\n\nТекущие статы банды:\nКасса: ${stats.cash}, Репутация: ${stats.reputation}, Респект: ${stats.respect}, Внимание ментов: ${stats.heat}` : '';
+  // 20% шанс на личную ситуацию
+  const isPersonal = Math.random() < 0.2;
+  const promptText = isPersonal
+    ? 'Сгенерируй личный или социальный вопрос для банды, который не связан напрямую с делом, а касается отношений, личных проблем или конфликтов между игроками.'
+    : 'Сгенерируй новую ситуацию для синдиката.';
   const messages = [
     { role: 'system', content: MASTER_PROMPT },
-    ...history.map(e => ({ role: 'user', content: e.event }))
+    ...history.map(e => ({ role: 'user', content: e.event })),
+    { role: 'user', content: promptText + statString }
   ];
-  messages.push({ role: 'user', content: 'Сгенерируй новую ситуацию для синдиката.' });
   return askDeepSeek(messages);
 }
 
@@ -123,4 +129,49 @@ export async function clearGameState(chatId) {
   await dbConn.run('DELETE FROM history WHERE chatId = ?', chatId);
   await dbConn.run('DELETE FROM replies WHERE chatId = ?', chatId);
   await dbConn.run('DELETE FROM relationships WHERE chatId = ?', chatId);
+}
+
+export async function getStats(chatId) {
+  const dbConn = db();
+  let stats = await dbConn.get('SELECT * FROM stats WHERE chatId = ?', chatId);
+  if (!stats) {
+    await dbConn.run('INSERT INTO stats (chatId) VALUES (?)', chatId);
+    stats = await dbConn.get('SELECT * FROM stats WHERE chatId = ?', chatId);
+  }
+  return stats;
+}
+
+export async function updateStats(chatId, changes) {
+  const dbConn = db();
+  const stats = await getStats(chatId);
+  const newStats = {
+    cash: (stats.cash || 0) + (changes.cash || 0),
+    reputation: (stats.reputation || 0) + (changes.reputation || 0),
+    respect: (stats.respect || 0) + (changes.respect || 0),
+    heat: (stats.heat || 0) + (changes.heat || 0)
+  };
+  await dbConn.run(
+    'UPDATE stats SET cash = ?, reputation = ?, respect = ?, heat = ? WHERE chatId = ?',
+    newStats.cash, newStats.reputation, newStats.respect, newStats.heat, chatId
+  );
+  return newStats;
+}
+
+export async function applyRoundEffects(chatId, roundResult) {
+  const prompt = `Вот итог раунда:
+${roundResult}
+
+На основе этого итога определи, как изменились статы банды:
+- cash: +/- число
+- reputation: +/- число
+- respect: +/- число
+- heat: +/- число
+Ответь в формате JSON, пример: {"cash": 50, "reputation": 1, "respect": 0, "heat": -1}`;
+  const effectStr = await askDeepSeek([{ role: 'user', content: prompt }]);
+  let changes = { cash: 0, reputation: 0, respect: 0, heat: 0 };
+  try {
+    changes = JSON.parse(effectStr.match(/\{[\s\S]*\}/)?.[0] || '{}');
+  } catch (e) {}
+  const newStats = await updateStats(chatId, changes);
+  return { changes, newStats };
 } 

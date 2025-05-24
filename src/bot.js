@@ -4,7 +4,7 @@ import { initDB } from './db.js';
 import logger from './logger.js';
 import { setupCommands } from './commands.js';
 import { setupCron } from './cron.js';
-import { getHistory, addReply, getReplies, generateComment, generateRoundResult, addHistory } from './gameLogic.js';
+import { getHistory, addReply, getReplies, generateComment, generateRoundResult, addHistory, getStats, applyRoundEffects } from './gameLogic.js';
 import { formatUsername } from './utils.js';
 
 const token = process.env.TELEGRAM_TOKEN;
@@ -26,10 +26,23 @@ async function handleRoundAdvance(chatId, bot) {
   const allReplies = replies || [];
   const roundResult = await generateRoundResult(history, allReplies);
   await addHistory(chatId, roundResult);
+  // --- Применяем эффекты к статам ---
+  const { changes, newStats } = await applyRoundEffects(chatId, roundResult);
+  // Формируем строку изменений
+  function statLine(name, value, delta) {
+    const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '(без изменений)';
+    return `${name}: ${value} ${sign}`;
+  }
+  const statsMsg = [
+    statLine('Касса', newStats.cash, changes.cash),
+    statLine('Репутация', newStats.reputation, changes.reputation),
+    statLine('Респект', newStats.respect, changes.respect),
+    statLine('Внимание ментов', newStats.heat, changes.heat)
+  ].join('\n');
   let nextTimeMsg = 'Братва, вернусь вечером с новой схемой!';
   const now = new Date();
   if (now.getHours() < 16) nextTimeMsg = 'Братва, вечером ещё отпишусь!';
-  bot.sendMessage(chatId, `${roundResult}\n\n${nextTimeMsg}`);
+  bot.sendMessage(chatId, `${roundResult}\n\nСтаты банды:\n${statsMsg}\n\n${nextTimeMsg}`);
   activeRounds.delete(chatId);
 }
 

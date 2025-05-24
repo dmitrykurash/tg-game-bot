@@ -37,6 +37,13 @@ export async function initDB() {
       reply TEXT,
       createdAt INTEGER
     );
+    CREATE TABLE IF NOT EXISTS stats (
+      chatId TEXT PRIMARY KEY,
+      cash INTEGER DEFAULT 100,
+      reputation INTEGER DEFAULT 0,
+      respect INTEGER DEFAULT 0,
+      heat INTEGER DEFAULT 0
+    );
   `);
 }
 
