@@ -16,6 +16,23 @@ logger.info('DB initialized');
 setupCommands(bot);
 setupCron(bot);
 
+// --- Логика сбора ответов и автоматического движения сюжета ---
+const activeRounds = new Map(); // chatId -> { timer, repliedUserIds, situationId }
+
+async function handleRoundAdvance(chatId, bot) {
+  const history = await getHistory(chatId, 1);
+  const situationId = history[0]?.id;
+  const replies = await getReplies(chatId, situationId);
+  const allReplies = replies || [];
+  const roundResult = await generateRoundResult(history, allReplies);
+  await addHistory(chatId, roundResult);
+  let nextTimeMsg = 'Братва, вернусь вечером с новой схемой!';
+  const now = new Date();
+  if (now.getHours() < 16) nextTimeMsg = 'Братва, вечером ещё отпишусь!';
+  bot.sendMessage(chatId, `${roundResult}\n\n${nextTimeMsg}`);
+  activeRounds.delete(chatId);
+}
+
 // Обработка реплаев на ситуации
 bot.on('message', async (msg) => {
   if (!msg.reply_to_message || !msg.text) return;
@@ -27,7 +44,6 @@ bot.on('message', async (msg) => {
 
   // Проверяем, что реплай на ситуацию (можно добавить маркер в тексте ситуации)
   if (repliedText && repliedText.includes('братва')) {
-    // Получаем номер ситуации (можно хранить в state, тут упрощённо)
     const history = await getHistory(chatId, 1);
     const situationId = history[0]?.id;
     await addReply(chatId, situationId, userId, username, replyText);
@@ -37,7 +53,59 @@ bot.on('message', async (msg) => {
     if (comment && comment.length > 5) {
       bot.sendMessage(chatId, comment, { reply_to_message_id: msg.message_id });
     }
-    // TODO: запускать итог раунда через 2 минуты после первого ответа (или сразу, если все ответили)
+
+    // --- Сбор ответов и запуск таймера ---
+    let round = activeRounds.get(chatId);
+    if (!round || round.situationId !== situationId) {
+      round = { timer: null, repliedUserIds: new Set(), situationId };
+      activeRounds.set(chatId, round);
+    }
+    round.repliedUserIds.add(userId);
+
+    // Получаем список участников чата (без бота)
+    let membersCount = 2; // fallback
+    try {
+      const admins = await bot.getChatAdministrators(chatId);
+      const isGroup = msg.chat.type.endsWith('group');
+      if (isGroup) {
+        const memberUserIds = admins.map(a => a.user.id);
+        membersCount = memberUserIds.length;
+        // Если бот админ, можно получить всех участников через getChatMemberCount
+        if (bot.getChatMemberCount) {
+          membersCount = await bot.getChatMemberCount(chatId);
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    // Если ответили хотя бы 2 или все (кроме бота)
+    const repliedCount = round.repliedUserIds.size;
+    const botId = bot.me?.id;
+    let allUsersReplied = false;
+    if (membersCount > 1) {
+      allUsersReplied = (repliedCount >= (membersCount - 1));
+    }
+    if ((repliedCount >= 2 || allUsersReplied) && !round.timer) {
+      round.timer = setTimeout(() => handleRoundAdvance(chatId, bot), 2 * 60 * 1000);
+      bot.sendMessage(chatId, 'Вай, братва! Через 2 минуты подведу итог и расскажу, что дальше.');
+    }
+  }
+});
+
+// Поддержка диалога с ботом через реплаи (даже если не @)
+bot.on('message', async (msg) => {
+  if (!msg.text) return;
+  const chatId = msg.chat.id;
+  const username = formatUsername(msg.from);
+  const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
+  if (isReplyToBot) {
+    const history = await getHistory(chatId, 10);
+    if (msg.text.length > 10) {
+      await addHistory(chatId, `${username}: ${msg.text}`);
+    }
+    const comment = await generateComment(history.reverse(), msg.text, username);
+    if (comment && comment.length > 5) {
+      bot.sendMessage(chatId, comment, { reply_to_message_id: msg.message_id });
+    }
   }
 });
 
@@ -46,11 +114,28 @@ bot.on('message', async (msg) => {
   if (!msg.text) return;
   const chatId = msg.chat.id;
   const username = formatUsername(msg.from);
-  if (msg.text.includes('@') || (msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username)) {
+  const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
+  const isMention = msg.text.includes('@' + (bot.me?.username || ''));
+  if (isMention || isReplyToBot) {
     const history = await getHistory(chatId, 10);
+    // Добавляем сюжетную информацию, если сообщение длиннее 10 символов
+    if (msg.text.length > 10) {
+      await addHistory(chatId, `${username}: ${msg.text}`);
+    }
     const comment = await generateComment(history.reverse(), msg.text, username);
     if (comment && comment.length > 5) {
       bot.sendMessage(chatId, comment, { reply_to_message_id: msg.message_id });
+    }
+  }
+});
+
+// Приветствие при добавлении в чат
+bot.on('new_chat_members', async (msg) => {
+  const chatId = msg.chat.id;
+  for (const member of msg.new_chat_members) {
+    if (member.username === bot.me?.username) {
+      bot.sendMessage(chatId, 'Вай, братва! Я теперь с вами. Готов вести ваши схемы и истории! Пишите /start чтобы начать.');
+      break;
     }
   }
 }); 

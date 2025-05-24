@@ -1,4 +1,4 @@
-import { getGameState, setGameState, addHistory, getHistory, generateSituation } from './gameLogic.js';
+import { getGameState, setGameState, addHistory, getHistory, generateSituation, clearGameState } from './gameLogic.js';
 import logger from './logger.js';
 
 export function setupCommands(bot) {
@@ -28,6 +28,26 @@ export function setupCommands(bot) {
     bot.sendMessage(chatId, 'Союзники и враги скоро появятся, брат.');
   });
 
+  bot.onText(/\/restart/, async (msg) => {
+    const chatId = msg.chat.id;
+    logger.info(`[${chatId}] /restart by ${msg.from.username}`);
+    await clearGameState(chatId);
+    const state = JSON.stringify({});
+    await setGameState(chatId, state, 1, Date.now());
+    const situation = await generateSituation([]);
+    await addHistory(chatId, situation);
+    bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${situation}`);
+  });
+
+  bot.onText(/\/next/, async (msg) => {
+    const chatId = msg.chat.id;
+    logger.info(`[${chatId}] /next by ${msg.from.username}`);
+    const history = await getHistory(chatId, 10);
+    const situation = await generateSituation(history.reverse());
+    await addHistory(chatId, situation);
+    bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${situation}`);
+  });
+
   bot.onText(/\/menu/, async (msg) => {
     const chatId = msg.chat.id;
     logger.info(`[${chatId}] /menu by ${msg.from.username}`);
@@ -36,7 +56,7 @@ export function setupCommands(bot) {
         keyboard: [
           ['История', 'Союзники и враги'],
           ['Позвать Аслана', 'Баланс и репутация'],
-          ['Справка']
+          ['Справка', 'Перезапустить', 'Следующая ситуация']
         ],
         resize_keyboard: true,
         one_time_keyboard: true
@@ -72,6 +92,20 @@ export function setupCommands(bot) {
       bot.sendMessage(chatId, 'Баланс и репутация скоро появятся, брат.');
     } else if (msg.text === 'Справка') {
       bot.sendMessage(chatId, 'Я — Аслан "Схема", ведущий вашей криминальной истории. Пиши /start чтобы начать, /history — посмотреть события, /callaslan — позвать меня. Отвечай на ситуации реплаем!');
+    } else if (msg.text === 'Перезапустить') {
+      logger.info(`[${chatId}] Перезапуск истории через меню`);
+      await clearGameState(chatId);
+      const state = JSON.stringify({});
+      await setGameState(chatId, state, 1, Date.now());
+      const situation = await generateSituation([]);
+      await addHistory(chatId, situation);
+      bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${situation}`);
+    } else if (msg.text === 'Следующая ситуация') {
+      logger.info(`[${chatId}] Следующая ситуация через меню`);
+      const history = await getHistory(chatId, 10);
+      const situation = await generateSituation(history.reverse());
+      await addHistory(chatId, situation);
+      bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${situation}`);
     }
   });
 } 

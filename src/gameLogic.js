@@ -115,4 +115,12 @@ export async function generateComment(history, reply, username) {
     { role: 'user', content: 'Дай короткий саркастичный комментарий (или промолчи).' }
   ];
   return askDeepSeek(messages);
+}
+
+export async function clearGameState(chatId) {
+  const dbConn = db();
+  await dbConn.run('DELETE FROM games WHERE chatId = ?', chatId);
+  await dbConn.run('DELETE FROM history WHERE chatId = ?', chatId);
+  await dbConn.run('DELETE FROM replies WHERE chatId = ?', chatId);
+  await dbConn.run('DELETE FROM relationships WHERE chatId = ?', chatId);
 } 
