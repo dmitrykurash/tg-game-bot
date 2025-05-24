@@ -18,6 +18,7 @@ setupCron(bot);
 
 // --- Логика сбора ответов и автоматического движения сюжета ---
 const activeRounds = new Map(); // chatId -> { timer, repliedUserIds, situationId }
+const lonelyTimers = new Map(); // chatId -> timer
 
 async function handleRoundAdvance(chatId, bot) {
   const history = await getHistory(chatId, 1);
@@ -46,6 +47,31 @@ async function handleRoundAdvance(chatId, bot) {
   activeRounds.delete(chatId);
 }
 
+async function handleNoReplies(chatId, bot) {
+  // Никто не ответил за 30 минут
+  const history = await getHistory(chatId, 1);
+  const situationId = history[0]?.id;
+  const roundResult = 'Вай, братва... Никто даже не ответил на схему! Я тут один тяну всё на себе, а вы даже не поддержали. Ну что ж, сам решу, как быть.';
+  await addHistory(chatId, roundResult);
+  const { changes, newStats } = await applyRoundEffects(chatId, roundResult);
+  function statLine(name, value, delta) {
+    const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '(без изменений)';
+    return `${name}: ${value} ${sign}`;
+  }
+  const statsMsg = [
+    statLine('Касса', newStats.cash, changes.cash),
+    statLine('Репутация', newStats.reputation, changes.reputation),
+    statLine('Респект', newStats.respect, changes.respect),
+    statLine('Внимание ментов', newStats.heat, changes.heat)
+  ].join('\n');
+  let nextTimeMsg = 'Братва, вернусь вечером с новой схемой!';
+  const now = new Date();
+  if (now.getHours() < 16) nextTimeMsg = 'Братва, вечером ещё отпишусь!';
+  bot.sendMessage(chatId, `${roundResult}\n\nСтаты банды:\n${statsMsg}\n\n${nextTimeMsg}`);
+  activeRounds.delete(chatId);
+  lonelyTimers.delete(chatId);
+}
+
 // Обработка реплаев на ситуации
 bot.on('message', async (msg) => {
   if (!msg.reply_to_message || !msg.text) return;
@@ -72,6 +98,11 @@ bot.on('message', async (msg) => {
     if (!round || round.situationId !== situationId) {
       round = { timer: null, repliedUserIds: new Set(), situationId };
       activeRounds.set(chatId, round);
+      // Запускаем таймер на 30 минут для случая "никто не ответил"
+      if (lonelyTimers.has(chatId)) {
+        clearTimeout(lonelyTimers.get(chatId));
+      }
+      lonelyTimers.set(chatId, setTimeout(() => handleNoReplies(chatId, bot), 30 * 60 * 1000));
     }
     round.repliedUserIds.add(userId);
 
@@ -83,7 +114,6 @@ bot.on('message', async (msg) => {
       if (isGroup) {
         const memberUserIds = admins.map(a => a.user.id);
         membersCount = memberUserIds.length;
-        // Если бот админ, можно получить всех участников через getChatMemberCount
         if (bot.getChatMemberCount) {
           membersCount = await bot.getChatMemberCount(chatId);
         }
@@ -100,6 +130,15 @@ bot.on('message', async (msg) => {
     if ((repliedCount >= 2 || allUsersReplied) && !round.timer) {
       round.timer = setTimeout(() => handleRoundAdvance(chatId, bot), 2 * 60 * 1000);
       bot.sendMessage(chatId, 'Вай, братва! Через 2 минуты подведу итог и расскажу, что дальше.');
+      // Если был таймер одиночки — отменяем
+      if (lonelyTimers.has(chatId)) {
+        clearTimeout(lonelyTimers.get(chatId));
+        lonelyTimers.delete(chatId);
+      }
+    } else if (repliedCount === 1 && !round.timer) {
+      // Если только один ответ — запускаем таймер на 30 минут
+      round.timer = setTimeout(() => handleRoundAdvance(chatId, bot), 30 * 60 * 1000);
+      bot.sendMessage(chatId, 'Вай, братва! Если никто больше не ответит, через 30 минут подведу итог по одному мнению!');
     }
   }
 });
