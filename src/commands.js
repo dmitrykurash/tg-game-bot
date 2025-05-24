@@ -1,10 +1,13 @@
 import { getGameState, setGameState, addHistory, getHistory, generateSituation, clearGameState, getStats } from './gameLogic.js';
 import logger from './logger.js';
 
+const INSTRUCTION_TEXT = `Как играть:\n— Я ведущий вашей криминальной истории.\n— Чтобы начать — напишите /start.\n— Я буду присылать ситуации, отвечайте на них реплаем (ответом на моё сообщение) — так ваш голос будет учтён.\n— Для личного диалога со мной — упомяните меня через @ или ответьте реплаем на мой ответ.\n— Я не вмешиваюсь в ваши обычные разговоры, только если вы явно обращаетесь ко мне.\n— Статы банды (касса, репутация и др.) зависят от ваших решений и влияют на сюжет.\n— В любой момент можно перезапустить историю через /restart или меню.\n\nВсё просто, братва! Погнали!`;
+
 export function setupCommands(bot) {
   bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     logger.info(`[${chatId}] /start by ${msg.from.username}`);
+    bot.sendMessage(chatId, INSTRUCTION_TEXT);
     const state = JSON.stringify({});
     await setGameState(chatId, state, 1, Date.now());
     const stats = await getStats(chatId);
@@ -59,7 +62,7 @@ export function setupCommands(bot) {
         keyboard: [
           ['История', 'Союзники и враги'],
           ['Позвать Аслана', 'Баланс и репутация'],
-          ['Справка', 'Перезапустить', 'Следующая ситуация']
+          ['Справка', 'Перезапустить', 'Следующая ситуация', 'Инструкция']
         ],
         resize_keyboard: true,
         one_time_keyboard: true
@@ -75,6 +78,11 @@ export function setupCommands(bot) {
     const situation = await generateSituation(history.reverse(), stats);
     await addHistory(chatId, situation);
     bot.sendMessage(chatId, `Вай, братва! Аслан тут как тут!\n\n${situation}`);
+  });
+
+  bot.onText(/\/instructions/, async (msg) => {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, INSTRUCTION_TEXT);
   });
 
   bot.on('message', async (msg) => {
@@ -96,6 +104,8 @@ export function setupCommands(bot) {
     } else if (msg.text === 'Баланс и репутация') {
       const stats = await getStats(chatId);
       bot.sendMessage(chatId, `Касса: ${stats.cash}\nРепутация: ${stats.reputation}\nРеспект: ${stats.respect}\nВнимание ментов: ${stats.heat}`);
+    } else if (msg.text === 'Инструкция') {
+      bot.sendMessage(chatId, INSTRUCTION_TEXT);
     } else if (msg.text === 'Справка') {
       bot.sendMessage(chatId, 'Я — Аслан "Схема", ведущий вашей криминальной истории. Пиши /start чтобы начать, /history — посмотреть события, /callaslan — позвать меня. Отвечай на ситуации реплаем!');
     } else if (msg.text === 'Перезапустить') {
