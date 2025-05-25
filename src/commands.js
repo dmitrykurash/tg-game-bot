@@ -1,5 +1,6 @@
 import { getGameState, setGameState, addHistory, getHistory, generateSituation, clearGameState, getStats } from './gameLogic.js';
 import logger from './logger.js';
+import { removeAsterisks } from './utils.js';
 
 const INSTRUCTION_TEXT = `Как играть:\n— Я ведущий вашей криминальной истории.\n— Чтобы начать — напишите /start.\n— Я буду присылать ситуации, отвечайте на них реплаем (ответом на моё сообщение) — так ваш голос будет учтён.\n— Для личного диалога со мной — упомяните меня через @ или ответьте реплаем на мой ответ.\n— Я не вмешиваюсь в ваши обычные разговоры, только если вы явно обращаетесь ко мне.\n— Статы банды (касса, репутация и др.) зависят от ваших решений и влияют на сюжет.\n— В любой момент можно перезапустить историю через /restart или меню.\n\nВсё просто, братва! Погнали!`;
 
@@ -13,7 +14,7 @@ export function setupCommands(bot) {
     const stats = await getStats(chatId);
     const situation = await generateSituation([], stats);
     await addHistory(chatId, situation);
-    bot.sendMessage(chatId, `Вай, братва! Начинаем новую историю!\n\n${situation}`);
+    bot.sendMessage(chatId, `Вай, братва! Начинаем новую историю!\n\n${removeAsterisks(situation)}`);
   });
 
   bot.onText(/\/history/, async (msg) => {
@@ -41,7 +42,7 @@ export function setupCommands(bot) {
     const stats = await getStats(chatId);
     const situation = await generateSituation([], stats);
     await addHistory(chatId, situation);
-    bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${situation}`);
+    bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${removeAsterisks(situation)}`);
   });
 
   bot.onText(/\/next/, async (msg) => {
@@ -51,7 +52,7 @@ export function setupCommands(bot) {
     const stats = await getStats(chatId);
     const situation = await generateSituation(history.reverse(), stats);
     await addHistory(chatId, situation);
-    bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${situation}`);
+    bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${removeAsterisks(situation)}`);
   });
 
   bot.onText(/\/menu/, async (msg) => {
@@ -77,7 +78,7 @@ export function setupCommands(bot) {
     const stats = await getStats(chatId);
     const situation = await generateSituation(history.reverse(), stats);
     await addHistory(chatId, situation);
-    bot.sendMessage(chatId, `Вай, братва! Аслан тут как тут!\n\n${situation}`);
+    bot.sendMessage(chatId, `Вай, братва! Аслан тут как тут!\n\n${removeAsterisks(situation)}`);
   });
 
   bot.onText(/\/instructions/, async (msg) => {
@@ -100,7 +101,7 @@ export function setupCommands(bot) {
       const stats = await getStats(chatId);
       const situation = await generateSituation(history.reverse(), stats);
       await addHistory(chatId, situation);
-      bot.sendMessage(chatId, `Вай, братва! Аслан тут как тут!\n\n${situation}`);
+      bot.sendMessage(chatId, `Вай, братва! Аслан тут как тут!\n\n${removeAsterisks(situation)}`);
     } else if (msg.text === 'Баланс и репутация') {
       const stats = await getStats(chatId);
       bot.sendMessage(chatId, `Касса: ${stats.cash}\nРепутация: ${stats.reputation}\nРеспект: ${stats.respect}\nВнимание ментов: ${stats.heat}`);
@@ -116,14 +117,14 @@ export function setupCommands(bot) {
       const stats = await getStats(chatId);
       const situation = await generateSituation([], stats);
       await addHistory(chatId, situation);
-      bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${situation}`);
+      bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${removeAsterisks(situation)}`);
     } else if (msg.text === 'Следующая ситуация') {
       logger.info(`[${chatId}] Следующая ситуация через меню`);
       const history = await getHistory(chatId, 10);
       const stats = await getStats(chatId);
       const situation = await generateSituation(history.reverse(), stats);
       await addHistory(chatId, situation);
-      bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${situation}`);
+      bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${removeAsterisks(situation)}`);
     }
   });
 } 

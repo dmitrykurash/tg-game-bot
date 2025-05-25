@@ -12,4 +12,8 @@ export function formatUsername(user) {
   if (user.username) return `@${user.username}`;
   if (user.first_name || user.last_name) return `${user.first_name || ''} ${user.last_name || ''}`.trim();
   return `id${user.id}`;
+}
+
+export function removeAsterisks(text) {
+  return text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/\*/g, '');
 } 
