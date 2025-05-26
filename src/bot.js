@@ -126,9 +126,17 @@ bot.on('message', async (msg) => {
 // Добавляю команду /miniapp
 bot.onText(/\/miniapp/, async (msg) => {
   const chatId = msg.chat.id;
-  // Автоматически определяем адрес (Railway подставит свой домен)
-  const url = `${process.env.PUBLIC_URL || ''}/miniapp.html?chatId=${chatId}`;
-  bot.sendMessage(chatId, `Открыть миниприложение-хронологию: ${url}`);
+  const url = `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}`;
+  bot.sendMessage(chatId, 'Открыть миниприложение-хронологию:', {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text: '📜 Хронология',
+          web_app: { url }
+        }
+      ]]
+    }
+  });
 });
 
 // --- Express API и миниапп ---
