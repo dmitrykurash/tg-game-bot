@@ -59,15 +59,13 @@ export function logBotAction(action, details = {}) {
 // Обработка реплаев на ситуации
 bot.on('message', async (msg) => {
   if (!msg.reply_to_message || !msg.text) return;
-  // Игнорируем все команды, кроме тех, что явно обрабатываются
   if (msg.text.startsWith('/')) return;
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const username = formatUsername(msg.from);
   const replyText = msg.text;
   const repliedText = msg.reply_to_message.text;
-
-  // Проверяем, что реплай на ситуацию (можно добавить маркер в тексте ситуации)
+  // Только если реплай на ситуацию
   if (repliedText && repliedText.includes('братва')) {
     const history = await getHistory(chatId, 1);
     const situationId = history[0]?.id;
@@ -79,20 +77,17 @@ bot.on('message', async (msg) => {
     if (comment && comment.length > 5) {
       bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
     }
-
     // --- Сбор ответов и запуск таймера ---
     let round = activeRounds.get(chatId);
     if (!round || round.situationId !== situationId) {
       round = { timer: null, repliedUserIds: new Set(), situationId };
       activeRounds.set(chatId, round);
-      // Запускаем таймер на 30 минут для случая "никто не ответил"
       if (lonelyTimers.has(chatId)) {
         clearTimeout(lonelyTimers.get(chatId));
       }
       lonelyTimers.set(chatId, setTimeout(() => handleNoReplies(chatId, bot), 30 * 60 * 1000));
     }
     round.repliedUserIds.add(userId);
-
     // Получаем список участников чата (без бота)
     let membersCount = 2; // fallback
     try {
@@ -132,48 +127,6 @@ bot.on('message', async (msg) => {
   }
 });
 
-// Поддержка диалога с ботом через реплаи (даже если не @)
-bot.on('message', async (msg) => {
-  if (!msg.text) return;
-  const chatId = msg.chat.id;
-  // Игнорируем все команды, кроме тех, что явно обрабатываются
-  if (msg.text.startsWith('/')) return;
-  const username = formatUsername(msg.from);
-  const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
-  if (isReplyToBot) {
-    const history = await getHistory(chatId, 10);
-    if (msg.text.length > 10) {
-      await addHistory(chatId, msg.text);
-    }
-    const comment = await generateComment(history.reverse(), msg.text, username);
-    if (comment && comment.length > 5) {
-      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
-    }
-  }
-});
-
-// Персональный ответ на @ или реплай на любое сообщение бота
-bot.on('message', async (msg) => {
-  if (!msg.text) return;
-  const chatId = msg.chat.id;
-  // Игнорируем все команды, кроме тех, что явно обрабатываются
-  if (msg.text.startsWith('/')) return;
-  const username = formatUsername(msg.from);
-  const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
-  const isMention = msg.text.includes('@' + (bot.me?.username || ''));
-  if (isMention || isReplyToBot) {
-    const history = await getHistory(chatId, 10);
-    // Добавляем сюжетную информацию, если сообщение длиннее 10 символов
-    if (msg.text.length > 10) {
-      await addHistory(chatId, msg.text);
-    }
-    const comment = await generateComment(history.reverse(), msg.text, username);
-    if (comment && comment.length > 5) {
-      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
-    }
-  }
-});
-
 // Приветствие при добавлении в чат
 bot.on('new_chat_members', async (msg) => {
   const chatId = msg.chat.id;
@@ -193,26 +146,4 @@ bot.onText(/\/stats/, async (msg) => {
   const stats = await getStats(chatId);
   logBotAction('Отправка статов по запросу', { chatId, stats });
   bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
-});
-
-// Приветствие при добавлении в чат
-bot.on('message', async (msg) => {
-  if (!msg.text) return;
-  const chatId = msg.chat.id;
-  // Игнорируем все команды, кроме тех, что явно обрабатываются
-  if (msg.text.startsWith('/')) return;
-  const username = formatUsername(msg.from);
-  const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
-  const isMention = msg.text.includes('@' + (bot.me?.username || ''));
-  if (isMention || isReplyToBot) {
-    const history = await getHistory(chatId, 10);
-    // Добавляем сюжетную информацию, если сообщение длиннее 10 символов
-    if (msg.text.length > 10) {
-      await addHistory(chatId, msg.text);
-    }
-    const comment = await generateComment(history.reverse(), msg.text, username);
-    if (comment && comment.length > 5) {
-      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
-    }
-  }
 }); 
