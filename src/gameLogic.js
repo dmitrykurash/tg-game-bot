@@ -113,7 +113,8 @@ export async function generateSituation(history, stats) {
     ...history.map(e => ({ role: 'user', content: e.event })),
     { role: 'user', content: promptText + statString }
   ];
-  return askDeepSeek(messages);
+  const situation = await askDeepSeek(messages);
+  return removeUsernames(situation);
 }
 
 export async function generateRoundResult(history, replies) {
