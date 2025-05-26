@@ -5,7 +5,7 @@ import logger from './logger.js';
 import { setupCommands } from './commands.js';
 import { setupCron } from './cron.js';
 import { getHistory, addReply, getReplies, generateComment, generateRoundResult, addHistory, getStats, applyRoundEffects } from './gameLogic.js';
-import { formatUsername, removeAsterisks } from './utils.js';
+import { formatUsername, removeAsterisks, removeUsernames } from './utils.js';
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
@@ -30,20 +30,15 @@ async function handleRoundAdvance(chatId, bot) {
   // --- Применяем эффекты к статам ---
   const { changes, newStats } = await applyRoundEffects(chatId, roundResult);
   // Формируем строку изменений
-  function statLine(name, value, delta) {
-    const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '(без изменений)';
-    return `${name}: ${value} ${sign}`;
+  function formatStatsMsg(stats, changes) {
+    function statLine(name, value, delta) {
+      const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '';
+      return `${name}: <b>${value}</b> ${sign}`;
+    }
+    return `<pre>${statLine('Касса', stats.cash, changes.cash)}\n${statLine('Репутация', stats.reputation, changes.reputation)}\n${statLine('Респект', stats.respect, changes.respect)}\n${statLine('Внимание ментов', stats.heat, changes.heat)}</pre>`;
   }
-  const statsMsg = [
-    statLine('Касса', newStats.cash, changes.cash),
-    statLine('Репутация', newStats.reputation, changes.reputation),
-    statLine('Респект', newStats.respect, changes.respect),
-    statLine('Внимание ментов', newStats.heat, changes.heat)
-  ].join('\n');
-  let nextTimeMsg = 'Братва, вернусь вечером с новой схемой!';
-  const now = new Date();
-  if (now.getHours() < 16) nextTimeMsg = 'Братва, вечером ещё отпишусь!';
-  bot.sendMessage(chatId, `${removeAsterisks(roundResult)}\n\nСтаты банды:\n${statsMsg}\n\n${nextTimeMsg}`);
+  bot.sendMessage(chatId, removeAsterisks(removeUsernames(roundResult)));
+  bot.sendMessage(chatId, formatStatsMsg(newStats, changes), { parse_mode: 'HTML' });
   activeRounds.delete(chatId);
 }
 
@@ -54,20 +49,15 @@ async function handleNoReplies(chatId, bot) {
   const roundResult = 'Вай, братва... Никто даже не ответил на схему! Я тут один тяну всё на себе, а вы даже не поддержали. Ну что ж, сам решу, как быть.';
   await addHistory(chatId, roundResult);
   const { changes, newStats } = await applyRoundEffects(chatId, roundResult);
-  function statLine(name, value, delta) {
-    const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '(без изменений)';
-    return `${name}: ${value} ${sign}`;
+  function formatStatsMsg(stats, changes) {
+    function statLine(name, value, delta) {
+      const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '';
+      return `${name}: <b>${value}</b> ${sign}`;
+    }
+    return `<pre>${statLine('Касса', stats.cash, changes.cash)}\n${statLine('Репутация', stats.reputation, changes.reputation)}\n${statLine('Респект', stats.respect, changes.respect)}\n${statLine('Внимание ментов', stats.heat, changes.heat)}</pre>`;
   }
-  const statsMsg = [
-    statLine('Касса', newStats.cash, changes.cash),
-    statLine('Репутация', newStats.reputation, changes.reputation),
-    statLine('Респект', newStats.respect, changes.respect),
-    statLine('Внимание ментов', newStats.heat, changes.heat)
-  ].join('\n');
-  let nextTimeMsg = 'Братва, вернусь вечером с новой схемой!';
-  const now = new Date();
-  if (now.getHours() < 16) nextTimeMsg = 'Братва, вечером ещё отпишусь!';
-  bot.sendMessage(chatId, `${removeAsterisks(roundResult)}\n\nСтаты банды:\n${statsMsg}\n\n${nextTimeMsg}`);
+  bot.sendMessage(chatId, removeAsterisks(removeUsernames(roundResult)));
+  bot.sendMessage(chatId, formatStatsMsg(newStats, changes), { parse_mode: 'HTML' });
   activeRounds.delete(chatId);
   lonelyTimers.delete(chatId);
 }
@@ -90,7 +80,7 @@ bot.on('message', async (msg) => {
     // Генерируем саркастичный комментарий
     const comment = await generateComment(history, replyText, username);
     if (comment && comment.length > 5) {
-      bot.sendMessage(chatId, removeAsterisks(comment), { reply_to_message_id: msg.message_id });
+      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
     }
 
     // --- Сбор ответов и запуск таймера ---
@@ -156,7 +146,7 @@ bot.on('message', async (msg) => {
     }
     const comment = await generateComment(history.reverse(), msg.text, username);
     if (comment && comment.length > 5) {
-      bot.sendMessage(chatId, removeAsterisks(comment), { reply_to_message_id: msg.message_id });
+      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
     }
   }
 });
@@ -176,7 +166,7 @@ bot.on('message', async (msg) => {
     }
     const comment = await generateComment(history.reverse(), msg.text, username);
     if (comment && comment.length > 5) {
-      bot.sendMessage(chatId, removeAsterisks(comment), { reply_to_message_id: msg.message_id });
+      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
     }
   }
 });

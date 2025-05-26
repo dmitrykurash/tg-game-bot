@@ -16,4 +16,8 @@ export function formatUsername(user) {
 
 export function removeAsterisks(text) {
   return text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/\*/g, '');
+}
+
+export function removeUsernames(text) {
+  return text.replace(/@[a-zA-Z0-9_]+/g, '');
 } 
