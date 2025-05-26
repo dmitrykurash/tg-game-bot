@@ -109,7 +109,11 @@ bot.on('message', async (msg) => {
     if (membersCount > 1) {
       allUsersReplied = (repliedCount >= (membersCount - 1));
     }
-    if ((repliedCount >= 2 || allUsersReplied) && !round.timer) {
+    if ((repliedCount >= 2 || allUsersReplied)) {
+      // Если уже был таймер — отменяем его
+      if (round.timer) {
+        clearTimeout(round.timer);
+      }
       round.timer = setTimeout(() => handleRoundAdvance(chatId, bot), 2 * 60 * 1000);
       logBotAction('Запуск таймера на 2 минуты', { chatId });
       bot.sendMessage(chatId, 'Вай, братва! Через 2 минуты подведу итог и расскажу, что дальше.');
