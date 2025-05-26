@@ -52,7 +52,7 @@ async function handleNoReplies(chatId, bot) {
 }
 
 // Пример логирования действий бота
-function logBotAction(action, details = {}) {
+export function logBotAction(action, details = {}) {
   logger.info(`[BOT_ACTION] ${action} ${JSON.stringify(details)}`);
 }
 
