@@ -102,7 +102,6 @@ export async function getReplies(chatId, situationId) {
 }
 
 export async function generateSituation(history, stats) {
-  const statString = stats ? `\n\nТекущие статы банды:\nКасса: ${stats.cash}, Репутация: ${stats.reputation}, Респект: ${stats.respect}, Внимание ментов: ${stats.heat}` : '';
   // 20% шанс на личную ситуацию
   const isPersonal = Math.random() < 0.2;
   const promptText = isPersonal
@@ -111,7 +110,7 @@ export async function generateSituation(history, stats) {
   const messages = [
     { role: 'system', content: MASTER_PROMPT },
     ...history.map(e => ({ role: 'user', content: e.event })),
-    { role: 'user', content: promptText + statString }
+    { role: 'user', content: promptText }
   ];
   const situation = await askDeepSeek(messages);
   return removeUsernames(situation);

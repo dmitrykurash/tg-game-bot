@@ -17,6 +17,7 @@ export function setupCommands(bot) {
     await addHistory(chatId, situation);
     logBotAction('Отправка новой ситуации', { chatId, situation: removeAsterisks(removeUsernames(situation)) });
     bot.sendMessage(chatId, `Вай, братва! Начинаем новую историю!\n\n${removeAsterisks(removeUsernames(situation))}`);
+    bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/history/, async (msg) => {
@@ -46,6 +47,7 @@ export function setupCommands(bot) {
     await addHistory(chatId, situation);
     logBotAction('Перезапуск истории через меню', { chatId });
     bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${removeAsterisks(removeUsernames(situation))}`);
+    bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/next/, async (msg) => {
@@ -57,6 +59,7 @@ export function setupCommands(bot) {
     await addHistory(chatId, situation);
     logBotAction('Отправка новой ситуации', { chatId, situation: removeAsterisks(removeUsernames(situation)) });
     bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${removeAsterisks(removeUsernames(situation))}`);
+    bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/menu/, async (msg) => {
@@ -110,6 +113,7 @@ export function setupCommands(bot) {
       await addHistory(chatId, situation);
       logBotAction('Перезапуск истории через меню', { chatId });
       bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${removeAsterisks(removeUsernames(situation))}`);
+      bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
     } else if (msg.text === 'Следующая ситуация') {
       logger.info(`[${chatId}] Следующая ситуация через меню`);
       const history = await getHistory(chatId, 10);
@@ -118,6 +122,7 @@ export function setupCommands(bot) {
       await addHistory(chatId, situation);
       logBotAction('Отправка новой ситуации', { chatId, situation: removeAsterisks(removeUsernames(situation)) });
       bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${removeAsterisks(removeUsernames(situation))}`);
+      bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
     } else if (msg.text === 'Статы') {
       const stats = await getStats(chatId);
       logBotAction('Отправка статов по запросу', { chatId, stats });
