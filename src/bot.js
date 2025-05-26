@@ -123,22 +123,6 @@ bot.on('message', async (msg) => {
   }
 });
 
-// Добавляю команду /miniapp
-bot.onText(/\/miniapp/, async (msg) => {
-  const chatId = msg.chat.id;
-  const url = `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}`;
-  bot.sendMessage(chatId, 'Открыть миниприложение-хронологию:', {
-    reply_markup: {
-      inline_keyboard: [[
-        {
-          text: '📜 Хронология',
-          web_app: { url }
-        }
-      ]]
-    }
-  });
-});
-
 // --- Express API и миниапп ---
 const app = express();
 const PORT = process.env.PORT || 3000;

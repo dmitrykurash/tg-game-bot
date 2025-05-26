@@ -84,6 +84,21 @@ export function setupCommands(bot) {
     bot.sendMessage(chatId, INSTRUCTION_TEXT);
   });
 
+  bot.onText(/\/miniapp/, async (msg) => {
+    const chatId = msg.chat.id;
+    const url = `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}`;
+    bot.sendMessage(chatId, 'Открыть миниприложение-хронологию:', {
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: '📜 Хронология',
+            web_app: { url }
+          }
+        ]]
+      }
+    });
+  });
+
   bot.on('message', async (msg) => {
     if (!msg.text) return;
     const chatId = msg.chat.id;
