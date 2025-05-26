@@ -172,4 +172,11 @@ bot.on('message', async (msg) => {
       bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
     }
   }
+});
+
+// Добавляю команду /miniapp
+bot.onText(/\/miniapp/, async (msg) => {
+  const chatId = msg.chat.id;
+  const url = `${process.env.MINIAPP_URL || 'https://your-domain.com'}/miniapp.html?chatId=${chatId}`;
+  bot.sendMessage(chatId, `Открыть миниприложение-хронологию: ${url}`);
 }); 

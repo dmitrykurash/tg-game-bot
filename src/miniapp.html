@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Хронология банды</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #222; color: #fff; margin: 0; padding: 0; }
+    .container { max-width: 500px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.3em; margin-bottom: 1em; }
+    .event { background: #333; border-radius: 8px; margin-bottom: 12px; padding: 12px; box-shadow: 0 2px 8px #0002; }
+    .summary { font-weight: bold; }
+    .date { color: #aaa; font-size: 0.9em; margin-bottom: 4px; }
+    .full { color: #ccc; font-size: 0.98em; margin-top: 6px; display: none; }
+    .event.open .full { display: block; }
+    .event.open .summary { color: #ffd700; }
+    .showmore { color: #6cf; cursor: pointer; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📜 Хронология банды</h1>
+    <div id="timeline">Загрузка…</div>
+  </div>
+  <script>
+    function getParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+    const chatId = getParam('chatId');
+    async function loadHistory() {
+      const r = await fetch(`/api/history?chatId=${encodeURIComponent(chatId)}`);
+      const data = await r.json();
+      const timeline = document.getElementById('timeline');
+      if (!data.history || !data.history.length) {
+        timeline.textContent = 'История пуста.';
+        return;
+      }
+      timeline.innerHTML = '';
+      data.history.forEach(ev => {
+        const d = new Date(ev.createdAt * 1000);
+        const date = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const div = document.createElement('div');
+        div.className = 'event';
+        div.innerHTML = `<div class="date">${date}</div><div class="summary">${ev.summary}</div><div class="full">${ev.full}</div><div class="showmore">Показать полностью</div>`;
+        div.querySelector('.showmore').onclick = () => {
+          div.classList.toggle('open');
+        };
+        timeline.appendChild(div);
+      });
+    }
+    loadHistory();
+  </script>
+</body>
+</html> 
