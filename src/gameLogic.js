@@ -2,6 +2,7 @@ import { askDeepSeek } from './deepseek.js';
 import db from './db.js';
 import logger from './logger.js';
 import { moscowNow } from './utils.js';
+import { removeUsernames } from './utils.js';
 
 const MASTER_PROMPT = `Ты - Аслан "Схема", виртуальный ведущий криминального синдиката в Telegram группе.
 
