@@ -69,6 +69,7 @@ export function setupCommands(bot) {
     bot.sendMessage(chatId, 'Меню:', {
       reply_markup: {
         keyboard: [
+          [{ text: '📜 Хронология', web_app: { url: `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}` } }],
           ['История', 'Союзники и враги'],
           ['Баланс и репутация', 'Статы'],
           ['Справка', 'Перезапустить', 'Следующая ситуация', 'Инструкция']
