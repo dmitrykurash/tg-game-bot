@@ -65,14 +65,13 @@ export function setupCommands(bot) {
   bot.onText(/\/menu/, async (msg) => {
     const chatId = msg.chat.id;
     logger.info(`[${chatId}] /menu by ${msg.from.username}`);
-    logBotAction('Игнорирование команды меню', { chatId, text: msg.text });
+    logBotAction('Открытие меню', { chatId, text: msg.text });
     bot.sendMessage(chatId, 'Меню:', {
       reply_markup: {
         keyboard: [
           [{ text: '📜 Хронология', web_app: { url: `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}` } }],
-          ['История', 'Союзники и враги'],
-          ['Баланс и репутация', 'Статы'],
-          ['Справка', 'Перезапустить', 'Следующая ситуация', 'Инструкция']
+          ['История', 'Статы'],
+          ['Справка', 'Перезапустить']
         ],
         resize_keyboard: true,
         one_time_keyboard: true
@@ -87,6 +86,8 @@ export function setupCommands(bot) {
 
   bot.onText(/\/miniapp/, async (msg) => {
     const chatId = msg.chat.id;
+    logger.info(`[${chatId}] /miniapp by ${msg.from.username}`);
+    logBotAction('Вызов /miniapp', { chatId });
     const url = `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}`;
     bot.sendMessage(chatId, 'Открыть миниприложение-хронологию:', {
       reply_markup: {
