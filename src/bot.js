@@ -29,15 +29,9 @@ async function handleRoundAdvance(chatId, bot) {
   await addHistory(chatId, roundResult);
   // --- Применяем эффекты к статам ---
   const { changes, newStats } = await applyRoundEffects(chatId, roundResult);
-  // Формируем строку изменений
-  function formatStatsMsg(stats, changes) {
-    function statLine(name, value, delta) {
-      const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '';
-      return `${name}: <b>${value}</b> ${sign}`;
-    }
-    return `<pre>${statLine('Касса', stats.cash, changes.cash)}\n${statLine('Репутация', stats.reputation, changes.reputation)}\n${statLine('Респект', stats.respect, changes.respect)}\n${statLine('Внимание ментов', stats.heat, changes.heat)}</pre>`;
-  }
+  logBotAction('Подведение итогов', { chatId, roundResult });
   bot.sendMessage(chatId, removeAsterisks(removeUsernames(roundResult)));
+  logBotAction('Отправка статов', { chatId, stats: newStats });
   bot.sendMessage(chatId, formatStatsPretty(newStats, changes), { parse_mode: 'HTML' });
   activeRounds.delete(chatId);
 }
@@ -49,17 +43,17 @@ async function handleNoReplies(chatId, bot) {
   const roundResult = 'Вай, братва... Никто даже не ответил на схему! Я тут один тяну всё на себе, а вы даже не поддержали. Ну что ж, сам решу, как быть.';
   await addHistory(chatId, roundResult);
   const { changes, newStats } = await applyRoundEffects(chatId, roundResult);
-  function formatStatsMsg(stats, changes) {
-    function statLine(name, value, delta) {
-      const sign = delta > 0 ? `(+${delta})` : delta < 0 ? `(${delta})` : '';
-      return `${name}: <b>${value}</b> ${sign}`;
-    }
-    return `<pre>${statLine('Касса', stats.cash, changes.cash)}\n${statLine('Репутация', stats.reputation, changes.reputation)}\n${statLine('Респект', stats.respect, changes.respect)}\n${statLine('Внимание ментов', stats.heat, changes.heat)}</pre>`;
-  }
+  logBotAction('Подведение итогов (никто не ответил)', { chatId, roundResult });
   bot.sendMessage(chatId, removeAsterisks(removeUsernames(roundResult)));
+  logBotAction('Отправка статов', { chatId, stats: newStats });
   bot.sendMessage(chatId, formatStatsPretty(newStats, changes), { parse_mode: 'HTML' });
   activeRounds.delete(chatId);
   lonelyTimers.delete(chatId);
+}
+
+// Пример логирования действий бота
+function logBotAction(action, details = {}) {
+  logger.info(`[BOT_ACTION] ${action} ${JSON.stringify(details)}`);
 }
 
 // Обработка реплаев на ситуации
@@ -78,6 +72,7 @@ bot.on('message', async (msg) => {
     const history = await getHistory(chatId, 1);
     const situationId = history[0]?.id;
     await addReply(chatId, situationId, userId, username, replyText);
+    logBotAction('Получен ответ игрока', { chatId, userId, username, replyText });
     logger.info(`[${chatId}] Реплай от ${username}: ${replyText}`);
     // Генерируем саркастичный комментарий
     const comment = await generateComment(history, replyText, username);
@@ -121,6 +116,7 @@ bot.on('message', async (msg) => {
     }
     if ((repliedCount >= 2 || allUsersReplied) && !round.timer) {
       round.timer = setTimeout(() => handleRoundAdvance(chatId, bot), 2 * 60 * 1000);
+      logBotAction('Запуск таймера на 2 минуты', { chatId });
       bot.sendMessage(chatId, 'Вай, братва! Через 2 минуты подведу итог и расскажу, что дальше.');
       // Если был таймер одиночки — отменяем
       if (lonelyTimers.has(chatId)) {
@@ -130,6 +126,7 @@ bot.on('message', async (msg) => {
     } else if (repliedCount === 1 && !round.timer) {
       // Если только один ответ — запускаем таймер на 30 минут
       round.timer = setTimeout(() => handleRoundAdvance(chatId, bot), 30 * 60 * 1000);
+      logBotAction('Запуск таймера на 30 минут', { chatId });
       bot.sendMessage(chatId, 'Вай, братва! Если никто больше не ответит, через 30 минут подведу итог по одному мнению!');
     }
   }
@@ -194,6 +191,7 @@ bot.on('new_chat_members', async (msg) => {
 bot.onText(/\/stats/, async (msg) => {
   const chatId = msg.chat.id;
   const stats = await getStats(chatId);
+  logBotAction('Отправка статов по запросу', { chatId, stats });
   bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
 });
 
