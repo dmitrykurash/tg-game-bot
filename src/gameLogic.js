@@ -14,7 +14,7 @@ const MASTER_PROMPT = `Ты - Аслан "Схема", виртуальный в
 
 ВАЖНО:
 - Не используй описания действий в стиле *улыбается*, *щурится*, *почёсывает бороду* и т.п. Пиши только как живой человек, без звёздочек и описаний жестов.
-- Если в сообщении есть @username, обязательно обращайся к этому человеку по тегу (@username) в своём ответе.
+- Если в сообщении есть @username, обязательно обращайся к этому человеку по тегу (@username) в своём ответе. Не используй в своих ответах форматирование текста звездочками или жирным текстом.
 
 ИГРОВАЯ МЕХАНИКА:
 Ты ведёшь интерактивную историю про криминальный синдикат "Восемь пальцев" в России 90-х.
@@ -51,6 +51,8 @@ const MASTER_PROMPT = `Ты - Аслан "Схема", виртуальный в
 — В любой момент можно перезапустить историю через /restart или меню.
 
 Всё просто, братва! Погнали!`;
+
+const PROMPT_ROUND_RESULT = `Ты — Аслан "Схема", ведущий криминальной истории. Тебе нужно только подвести итог раунда, проанализировать действия игроков, последствия и статы. Не придумывай новую ситуацию, не продолжай сюжет, не задавай новых вопросов. Просто подведи итог и прокомментируй, что произошло.`;
 
 export async function getGameState(chatId) {
   const dbConn = db();
@@ -115,11 +117,11 @@ export async function generateSituation(history, stats) {
 
 export async function generateRoundResult(history, replies) {
   const messages = [
-    { role: 'system', content: MASTER_PROMPT },
+    { role: 'system', content: PROMPT_ROUND_RESULT },
     ...history.map(e => ({ role: 'user', content: e.event })),
     { role: 'user', content: 'Ответы игроков:' },
-    ...replies.map(r => ({ role: 'user', content: `${r.username}: ${r.reply}` })),
-    { role: 'user', content: 'Подведи итог раунда и опиши развитие событий.' }
+    ...replies.map(r => ({ role: 'user', content: `${removeUsernames(r.username)}: ${removeUsernames(r.reply)}` })),
+    { role: 'user', content: 'Подведи итог раунда и опиши последствия. Не придумывай новую ситуацию.' }
   ];
   return askDeepSeek(messages);
 }

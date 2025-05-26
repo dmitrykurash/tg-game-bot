@@ -5,7 +5,7 @@ import logger from './logger.js';
 import { setupCommands } from './commands.js';
 import { setupCron } from './cron.js';
 import { getHistory, addReply, getReplies, generateComment, generateRoundResult, addHistory, getStats, applyRoundEffects } from './gameLogic.js';
-import { formatUsername, removeAsterisks, removeUsernames } from './utils.js';
+import { formatUsername, removeAsterisks, removeUsernames, formatStatsPretty } from './utils.js';
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
@@ -38,7 +38,7 @@ async function handleRoundAdvance(chatId, bot) {
     return `<pre>${statLine('Касса', stats.cash, changes.cash)}\n${statLine('Репутация', stats.reputation, changes.reputation)}\n${statLine('Респект', stats.respect, changes.respect)}\n${statLine('Внимание ментов', stats.heat, changes.heat)}</pre>`;
   }
   bot.sendMessage(chatId, removeAsterisks(removeUsernames(roundResult)));
-  bot.sendMessage(chatId, formatStatsMsg(newStats, changes), { parse_mode: 'HTML' });
+  bot.sendMessage(chatId, formatStatsPretty(newStats, changes), { parse_mode: 'HTML' });
   activeRounds.delete(chatId);
 }
 
@@ -57,7 +57,7 @@ async function handleNoReplies(chatId, bot) {
     return `<pre>${statLine('Касса', stats.cash, changes.cash)}\n${statLine('Репутация', stats.reputation, changes.reputation)}\n${statLine('Респект', stats.respect, changes.respect)}\n${statLine('Внимание ментов', stats.heat, changes.heat)}</pre>`;
   }
   bot.sendMessage(chatId, removeAsterisks(removeUsernames(roundResult)));
-  bot.sendMessage(chatId, formatStatsMsg(newStats, changes), { parse_mode: 'HTML' });
+  bot.sendMessage(chatId, formatStatsPretty(newStats, changes), { parse_mode: 'HTML' });
   activeRounds.delete(chatId);
   lonelyTimers.delete(chatId);
 }
@@ -180,6 +180,34 @@ bot.on('new_chat_members', async (msg) => {
       // Краткая инструкция
       bot.sendMessage(chatId, `Как играть:\n— Я ведущий вашей криминальной истории.\n— Чтобы начать — напишите /start.\n— Я буду присылать ситуации, отвечайте на них реплаем (ответом на моё сообщение) — так ваш голос будет учтён.\n— Для личного диалога со мной — упомяните меня через @ или ответьте реплаем на мой ответ.\n— Я не вмешиваюсь в ваши обычные разговоры, только если вы явно обращаетесь ко мне.\n— Статы банды (касса, репутация и др.) зависят от ваших решений и влияют на сюжет.\n— В любой момент можно перезапустить историю через /restart или меню.\n\nВсё просто, братва! Погнали!`);
       break;
+    }
+  }
+});
+
+// Добавляю команду /stats
+bot.onText(/\/stats/, async (msg) => {
+  const chatId = msg.chat.id;
+  const stats = await getStats(chatId);
+  bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
+});
+
+// Приветствие при добавлении в чат
+bot.on('message', async (msg) => {
+  if (!msg.text) return;
+  const chatId = msg.chat.id;
+  if (msg.text.startsWith('/') && msg.text.includes('@')) return;
+  const username = formatUsername(msg.from);
+  const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
+  const isMention = msg.text.includes('@' + (bot.me?.username || ''));
+  if (isMention || isReplyToBot) {
+    const history = await getHistory(chatId, 10);
+    // Добавляем сюжетную информацию, если сообщение длиннее 10 символов
+    if (msg.text.length > 10) {
+      await addHistory(chatId, `${username}: ${msg.text}`);
+    }
+    const comment = await generateComment(history.reverse(), msg.text, username);
+    if (comment && comment.length > 5) {
+      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
     }
   }
 }); 

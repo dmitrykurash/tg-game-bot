@@ -62,7 +62,7 @@ export function setupCommands(bot) {
       reply_markup: {
         keyboard: [
           ['История', 'Союзники и враги'],
-          ['Позвать Аслана', 'Баланс и репутация'],
+          ['Баланс и репутация', 'Статы'],
           ['Справка', 'Перезапустить', 'Следующая ситуация', 'Инструкция']
         ],
         resize_keyboard: true,
@@ -110,6 +110,9 @@ export function setupCommands(bot) {
       const situation = await generateSituation(history.reverse(), stats);
       await addHistory(chatId, situation);
       bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${removeAsterisks(removeUsernames(situation))}`);
+    } else if (msg.text === 'Статы') {
+      const stats = await getStats(chatId);
+      bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
     }
   });
 } 
