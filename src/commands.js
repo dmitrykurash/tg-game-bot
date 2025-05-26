@@ -70,8 +70,8 @@ export function setupCommands(bot) {
       reply_markup: {
         keyboard: [
           [{ text: '📜 Хронология', web_app: { url: `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}` } }],
-          ['История', 'Статы'],
-          ['Справка', 'Перезапустить']
+          ['Статы'],
+          ['Перезапустить']
         ],
         resize_keyboard: true,
         one_time_keyboard: true
@@ -105,21 +105,10 @@ export function setupCommands(bot) {
     if (!msg.text) return;
     const chatId = msg.chat.id;
     if (msg.text.startsWith('/') && msg.text.includes('@')) return;
-    if (msg.text === 'История') {
-      const history = await getHistory(chatId, 10);
-      if (!history.length) return bot.sendMessage(chatId, 'История пуста, брат.');
-      const text = history.map(e => `• ${e.event}`).join('\n\n');
-      bot.sendMessage(chatId, `10 последних событий:\n\n${text}`);
-    } else if (msg.text === 'Союзники и враги') {
-      bot.sendMessage(chatId, 'Союзники и враги скоро появятся, брат.');
-    } else if (msg.text === 'Баланс и репутация') {
+    if (msg.text === 'Статы') {
       const stats = await getStats(chatId);
       logBotAction('Отправка статов по запросу', { chatId, stats });
-      bot.sendMessage(chatId, `Касса: ${stats.cash}\nРепутация: ${stats.reputation}\nРеспект: ${stats.respect}\nВнимание ментов: ${stats.heat}`);
-    } else if (msg.text === 'Инструкция') {
-      bot.sendMessage(chatId, INSTRUCTION_TEXT);
-    } else if (msg.text === 'Справка') {
-      bot.sendMessage(chatId, 'Я — Аслан "Схема", ведущий вашей криминальной истории. Пиши /start чтобы начать, /history — посмотреть события, /callaslan — позвать меня. Отвечай на ситуации реплаем!');
+      bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
     } else if (msg.text === 'Перезапустить') {
       logger.info(`[${chatId}] Перезапуск истории через меню`);
       await clearGameState(chatId);
@@ -130,19 +119,6 @@ export function setupCommands(bot) {
       await addHistory(chatId, situation);
       logBotAction('Перезапуск истории через меню', { chatId });
       bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${removeAsterisks(removeUsernames(situation))}`);
-      bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
-    } else if (msg.text === 'Следующая ситуация') {
-      logger.info(`[${chatId}] Следующая ситуация через меню`);
-      const history = await getHistory(chatId, 10);
-      const stats = await getStats(chatId);
-      const situation = await generateSituation(history.reverse(), stats);
-      await addHistory(chatId, situation);
-      logBotAction('Отправка новой ситуации', { chatId, situation: removeAsterisks(removeUsernames(situation)) });
-      bot.sendMessage(chatId, `Вай, братва! Вот новая ситуация!\n\n${removeAsterisks(removeUsernames(situation))}`);
-      bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
-    } else if (msg.text === 'Статы') {
-      const stats = await getStats(chatId);
-      logBotAction('Отправка статов по запросу', { chatId, stats });
       bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
     }
   });
