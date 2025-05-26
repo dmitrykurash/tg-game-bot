@@ -10,6 +10,10 @@ import { formatUsername, removeAsterisks, removeUsernames, formatStatsPretty } f
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
+// Получаем username бота при старте
+const me = await bot.getMe();
+const botUsername = me.username ? `@${me.username}` : '';
+
 await initDB();
 logger.info('DB initialized');
 
@@ -158,8 +162,7 @@ bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const username = formatUsername(msg.from);
-  const botUser = bot.me?.username ? `@${bot.me.username}` : '';
-  if (botUser && msg.text.includes(botUser)) {
+  if (botUsername && msg.text.includes(botUsername)) {
     logBotAction('Явное обращение к боту через @', { chatId, userId, username, text: msg.text });
     // Получаем историю для контекста
     const history = await getHistory(chatId, 5);
