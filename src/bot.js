@@ -71,7 +71,7 @@ bot.on('message', async (msg) => {
   if (repliedText && repliedText.includes('братва')) {
     const history = await getHistory(chatId, 1);
     const situationId = history[0]?.id;
-    await addReply(chatId, situationId, userId, username, replyText);
+    await addReply(chatId, situationId, userId, '', replyText);
     logBotAction('Получен ответ игрока', { chatId, userId, username, replyText });
     logger.info(`[${chatId}] Реплай от ${username}: ${replyText}`);
     // Генерируем саркастичный комментарий
@@ -143,7 +143,7 @@ bot.on('message', async (msg) => {
   if (isReplyToBot) {
     const history = await getHistory(chatId, 10);
     if (msg.text.length > 10) {
-      await addHistory(chatId, `${username}: ${msg.text}`);
+      await addHistory(chatId, msg.text);
     }
     const comment = await generateComment(history.reverse(), msg.text, username);
     if (comment && comment.length > 5) {
@@ -165,7 +165,7 @@ bot.on('message', async (msg) => {
     const history = await getHistory(chatId, 10);
     // Добавляем сюжетную информацию, если сообщение длиннее 10 символов
     if (msg.text.length > 10) {
-      await addHistory(chatId, `${username}: ${msg.text}`);
+      await addHistory(chatId, msg.text);
     }
     const comment = await generateComment(history.reverse(), msg.text, username);
     if (comment && comment.length > 5) {
@@ -208,7 +208,7 @@ bot.on('message', async (msg) => {
     const history = await getHistory(chatId, 10);
     // Добавляем сюжетную информацию, если сообщение длиннее 10 символов
     if (msg.text.length > 10) {
-      await addHistory(chatId, `${username}: ${msg.text}`);
+      await addHistory(chatId, msg.text);
     }
     const comment = await generateComment(history.reverse(), msg.text, username);
     if (comment && comment.length > 5) {
