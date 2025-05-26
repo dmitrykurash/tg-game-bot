@@ -6,6 +6,10 @@ import { setupCommands } from './commands.js';
 import { setupCron } from './cron.js';
 import { getHistory, addReply, getReplies, generateComment, generateRoundResult, addHistory, getStats, applyRoundEffects } from './gameLogic.js';
 import { formatUsername, removeAsterisks, removeUsernames, formatStatsPretty } from './utils.js';
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
@@ -177,6 +181,40 @@ bot.on('message', async (msg) => {
 // Добавляю команду /miniapp
 bot.onText(/\/miniapp/, async (msg) => {
   const chatId = msg.chat.id;
-  const url = `${process.env.MINIAPP_URL || 'https://your-domain.com'}/miniapp.html?chatId=${chatId}`;
+  // Автоматически определяем адрес (Railway подставит свой домен)
+  const url = `${process.env.PUBLIC_URL || ''}/miniapp.html?chatId=${chatId}`;
   bot.sendMessage(chatId, `Открыть миниприложение-хронологию: ${url}`);
+});
+
+// --- Express API и миниапп ---
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Короткое саммари (первые 100 символов, без переносов)
+function shortSummary(text) {
+  return text.replace(/\n/g, ' ').slice(0, 100) + (text.length > 100 ? '…' : '');
+}
+
+app.get('/api/history', async (req, res) => {
+  const chatId = req.query.chatId;
+  if (!chatId) return res.status(400).json({ error: 'chatId required' });
+  const history = await getHistory(chatId, 50);
+  const result = history.map(e => ({
+    id: e.id,
+    createdAt: e.createdAt,
+    summary: shortSummary(e.event),
+    full: e.event
+  })).reverse();
+  res.json({ chatId, history: result });
+});
+
+// Отдаём miniapp.html
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.get('/miniapp.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'miniapp.html'));
+});
+
+app.listen(PORT, () => {
+  logger.info(`Express API+miniapp listening on port ${PORT}`);
 }); 
