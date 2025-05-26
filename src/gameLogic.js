@@ -113,6 +113,11 @@ function removeStatsLines(text) {
   return text.replace(/(^|\n)(\s*\(*\s*(Касса|Репутация|Респект|Внимание ментов|Долг|Статы|Баланс)[^\n]*\)*\s*)/gmi, '\n').replace(/\n{2,}/g, '\n\n').trim();
 }
 
+function removeFakeUsernames(text) {
+  // Удаляет @username1, @username2, @user1, @игрок1 и подобные шаблонные теги
+  return text.replace(/@(?:username|user|игрок)\d+/gi, '').replace(/\s{2,}/g, ' ');
+}
+
 export async function generateSituation(history, stats) {
   // 20% шанс на личную ситуацию
   const isPersonal = Math.random() < 0.2;
@@ -125,7 +130,7 @@ export async function generateSituation(history, stats) {
     { role: 'user', content: promptText }
   ];
   const situation = await askDeepSeek(messages);
-  return removeStatsLines(removeUsernames(situation));
+  return removeFakeUsernames(removeStatsLines(removeUsernames(situation)));
 }
 
 export async function generateRoundResult(history, replies) {
