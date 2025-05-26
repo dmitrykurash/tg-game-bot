@@ -150,4 +150,23 @@ bot.onText(/\/stats/, async (msg) => {
   const stats = await getStats(chatId);
   logBotAction('Отправка статов по запросу', { chatId, stats });
   bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
+});
+
+// Обработка явных обращений к боту через @username (не команда, не реплай)
+bot.on('message', async (msg) => {
+  if (!msg.text || msg.text.startsWith('/') || msg.reply_to_message) return;
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const username = formatUsername(msg.from);
+  const botUser = bot.me?.username ? `@${bot.me.username}` : '';
+  if (botUser && msg.text.includes(botUser)) {
+    logBotAction('Явное обращение к боту через @', { chatId, userId, username, text: msg.text });
+    // Получаем историю для контекста
+    const history = await getHistory(chatId, 5);
+    // Генерируем ответ
+    const comment = await generateComment(history, msg.text, username);
+    if (comment && comment.length > 5) {
+      bot.sendMessage(chatId, removeAsterisks(removeUsernames(comment)), { reply_to_message_id: msg.message_id });
+    }
+  }
 }); 
