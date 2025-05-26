@@ -65,6 +65,8 @@ async function handleNoReplies(chatId, bot) {
 // Обработка реплаев на ситуации
 bot.on('message', async (msg) => {
   if (!msg.reply_to_message || !msg.text) return;
+  // Игнорируем все команды, кроме тех, что явно обрабатываются
+  if (msg.text.startsWith('/')) return;
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const username = formatUsername(msg.from);
@@ -137,6 +139,8 @@ bot.on('message', async (msg) => {
 bot.on('message', async (msg) => {
   if (!msg.text) return;
   const chatId = msg.chat.id;
+  // Игнорируем все команды, кроме тех, что явно обрабатываются
+  if (msg.text.startsWith('/')) return;
   const username = formatUsername(msg.from);
   const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
   if (isReplyToBot) {
@@ -155,6 +159,8 @@ bot.on('message', async (msg) => {
 bot.on('message', async (msg) => {
   if (!msg.text) return;
   const chatId = msg.chat.id;
+  // Игнорируем все команды, кроме тех, что явно обрабатываются
+  if (msg.text.startsWith('/')) return;
   const username = formatUsername(msg.from);
   const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
   const isMention = msg.text.includes('@' + (bot.me?.username || ''));
@@ -195,7 +201,8 @@ bot.onText(/\/stats/, async (msg) => {
 bot.on('message', async (msg) => {
   if (!msg.text) return;
   const chatId = msg.chat.id;
-  if (msg.text.startsWith('/') && msg.text.includes('@')) return;
+  // Игнорируем все команды, кроме тех, что явно обрабатываются
+  if (msg.text.startsWith('/')) return;
   const username = formatUsername(msg.from);
   const isReplyToBot = msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.username === bot.me?.username;
   const isMention = msg.text.includes('@' + (bot.me?.username || ''));

@@ -19,7 +19,7 @@ export function removeAsterisks(text) {
 }
 
 export function removeUsernames(text) {
-  return text.replace(/@[a-zA-Z0-9_]+/g, '');
+  return text.replace(/@(username|user|testuser|test|someone|player)\b/gi, '');
 }
 
 export function formatStatsPretty(stats, changes) {
