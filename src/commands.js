@@ -69,9 +69,9 @@ export function setupCommands(bot) {
     bot.sendMessage(chatId, 'Меню:', {
       reply_markup: {
         keyboard: [
-          [{ text: '📜 Хронология', web_app: { url: `https://tg-game-bot-production.up.railway.app/miniapp.html?chatId=${chatId}` } }],
           ['Статы'],
-          ['Перезапустить']
+          ['Перезапустить'],
+          ['Открыть хронологию']
         ],
         resize_keyboard: true,
         one_time_keyboard: true
@@ -120,6 +120,8 @@ export function setupCommands(bot) {
       logBotAction('Перезапуск истории через меню', { chatId });
       bot.sendMessage(chatId, `Вай, братва! Всё по новой! Начинаем новую историю!\n\n${removeAsterisks(removeUsernames(situation))}`);
       bot.sendMessage(chatId, formatStatsPretty(stats), { parse_mode: 'HTML' });
+    } else if (msg.text === 'Открыть хронологию') {
+      bot.sendMessage(chatId, 'Для запуска миниприложения используй команду /miniapp');
     }
   });
 } 
