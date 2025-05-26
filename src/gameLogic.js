@@ -101,6 +101,10 @@ export async function getReplies(chatId, situationId) {
   );
 }
 
+function removeStatsLines(text) {
+  return text.replace(/(^|\n)(\s*\(*\s*(Касса|Репутация|Респект|Внимание ментов|Долг|Статы|Баланс)[^\n]*\)*\s*)/gmi, '\n').replace(/\n{2,}/g, '\n\n').trim();
+}
+
 export async function generateSituation(history, stats) {
   // 20% шанс на личную ситуацию
   const isPersonal = Math.random() < 0.2;
@@ -113,7 +117,7 @@ export async function generateSituation(history, stats) {
     { role: 'user', content: promptText }
   ];
   const situation = await askDeepSeek(messages);
-  return removeUsernames(situation);
+  return removeStatsLines(removeUsernames(situation));
 }
 
 export async function generateRoundResult(history, replies) {
